@@ -22,7 +22,7 @@ You can easily set up a NeleBot X with its docs [here](https://neleb54gold.githu
 
 [🤖 Try @CocktailsInfoBot](https://t.me/CocktailsInfoBot)
 
-[⭐️ Rate on @BotsArchive](https://t.me/BotsArchive/)
+[⭐️ Rate on @BotsArchive](https://t.me/BotsArchive/2445)
 
 [📲 Help with Translations](https://nelebots.oneskyapp.com/collaboration/translate/project/project/185375/)
 
