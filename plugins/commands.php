@@ -171,8 +171,9 @@ if ($v->chat_type == 'private') {
 # Inline commands
 if ($v->update['inline_query']) {
 	$results = [];
+	$limit = 50;
 	if ($v->query) {
-		$cocktails = $cti->searchCocktail($v->query);
+		$cocktails = $cti->searchCocktail($v->query, $limit, ($limit * $v->offset));
 		if (!empty($cocktails) and !isset($cocktails['error'])) {
 			foreach ($cocktails as $cocktail) {
 				foreach (json_decode($cocktail['ingredients'], true) as $ingredient) {
@@ -210,7 +211,8 @@ if ($v->update['inline_query']) {
 				$t = '🔎 ' . $bot->bold($cocktail['name']) . PHP_EOL . PHP_EOL .
 				$bot->bold($tr->getTranslation('glass')) . ': ' . $cocktail['glass'] . PHP_EOL . 
 				$bot->bold($tr->getTranslation('category')) . ': ' . $tr->getTranslation('category' . $cocktail['category']) . PHP_EOL . 
-				$bot->bold($tr->getTranslation('ingredients')) . ': ' . $ingredients . PHP_EOL;
+				$bot->bold($tr->getTranslation('ingredients')) . ': ' . $ingredients . PHP_EOL .
+				$bot->bold($tr->getTranslation('preparationProcess')) . ': ' . $bot->italic($cocktail['preparation'], true);
 				$results[] = $bot->createInlineArticle(
 					$id += 1,
 					$cocktail['name'],
@@ -218,9 +220,65 @@ if ($v->update['inline_query']) {
 					$bot->createTextInput($t)
 				);
 			}
+			$next = (count($cocktails) == 50) ? $v->offset + 1 : false;
+		} else {
+			$next = false;
+		}
+	} else {
+		$cocktails = $cti->getCocktails($limit, ($limit * $v->offset));
+		if (!empty($cocktails) and !isset($cocktails['error'])) {
+			foreach ($cocktails as $cocktail) {
+				$ingredients = '';
+				foreach (json_decode($cocktail['ingredients'], true) as $ingredient) {
+					if (isset($ingredient['amount'])) {
+						$ingredients .= PHP_EOL . '● ' . $tr->getTranslation('amountOfIngredient', [round($ingredient['amount'], 1), $ingredient['unit'], $ingredient['ingredient']]);
+						if ($ingredient['label']) $ingredients .= ' (' . $ingredient['label'] . ')';
+					} elseif (isset($ingredient['special'])) {
+						$ingredients .= PHP_EOL . '● ' . $ingredient['special'];
+					}
+				}
+				$glass = explode('-', $cocktail['glass']);
+				$cocktail['glass'] = $string = '';
+				foreach ($glass as $string) {
+					$string[0] = strtoupper($string[0]);
+					$cocktail['glass'] .= $string;
+				}
+				if ($cocktail['glass'] == 'Martini') {
+					$cocktail['glass'] = $tr->getTranslation('glass' . $cocktail['glass']) . ' 🍸';
+				} elseif ($cocktail['glass'] == 'OldFashioned') {
+					$cocktail['glass'] = $tr->getTranslation('glass' . $cocktail['glass']) . ' 🥃';
+				} elseif ($cocktail['glass'] == 'ChampagneFlute') {
+					$cocktail['glass'] = $tr->getTranslation('glass' . $cocktail['glass']) . ' 🥂';
+				} elseif ($cocktail['glass'] == 'WhiteWine') {
+					$cocktail['glass'] = $tr->getTranslation('glass' . $cocktail['glass']) . ' 🍷';
+				} else {
+					$cocktail['glass'] = $tr->getTranslation('glass' . $cocktail['glass']);
+				}
+				if (!$cocktail['category']) $cocktail['category'] = 'None';
+				$category = explode('-', $cocktail['category']);
+				$cocktail['category'] = $string = '';
+				foreach ($category as $string) {
+					$string[0] = strtoupper($string[0]);
+					$cocktail['category'] .= $string;
+				}
+				$t = '🔎 ' . $bot->bold($cocktail['name']) . PHP_EOL . PHP_EOL .
+				$bot->bold($tr->getTranslation('glass')) . ': ' . $cocktail['glass'] . PHP_EOL . 
+				$bot->bold($tr->getTranslation('category')) . ': ' . $tr->getTranslation('category' . $cocktail['category']) . PHP_EOL . 
+				$bot->bold($tr->getTranslation('ingredients')) . ': ' . $ingredients . PHP_EOL .
+				$bot->bold($tr->getTranslation('preparationProcess')) . ': ' . $bot->italic($cocktail['preparation'], true);
+				$results[] = $bot->createInlineArticle(
+					$id += 1,
+					$cocktail['name'],
+					$ingredients,
+					$bot->createTextInput($t)
+				);
+			}
+			$next = (count($cocktails) == $limit) ? $v->offset + 1 : false;
+		} else {
+			$next = false;
 		}
 	}
-	$bot->answerIQ($v->id, $results);
+	$bot->answerIQ($v->id, $results, false, false, $next);
 }
 
 ?>
